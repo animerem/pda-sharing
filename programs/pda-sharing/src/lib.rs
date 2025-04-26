@@ -8,19 +8,24 @@ pub mod pda_sharing {
     use super::*;
 
     pub fn initialize_pool(ctx: Context<InitializePool>, bump: u8) -> Result<()> {
+        let owner = &ctx.accounts.owner;
+        if owner.key() != ctx.accounts.pool.owner {
+            return Err(ErrorCode::Unauthorized.into());
+        }
+
         ctx.accounts.pool.vault = ctx.accounts.vault.key();
         ctx.accounts.pool.mint = ctx.accounts.mint.key();
         ctx.accounts.pool.withdraw_destination = ctx.accounts.withdraw_destination.key();
-        ctx.accounts.pool.bump = bump;
 
+        msg!("Pool initialized successfully.");
         Ok(())
     }
+}
 
-    pub fn withdraw_insecure(ctx: Context<WithdrawTokens>) -> Result<()> {
-        let amount = ctx.accounts.vault.amount;
-        let seeds = &[ctx.accounts.pool.mint.as_ref(), &[ctx.accounts.pool.bump]];
-        token::transfer(ctx.accounts.transfer_ctx().with_signer(&[seeds]), amount)
-    }
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Unauthorized access attempt.")]
+    Unauthorized,
 }
 
 #[derive(Accounts)]
